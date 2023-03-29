@@ -3,11 +3,11 @@
 
 #include "image.h"
 
-struct Image qoi_to_raw(const char* file) {
+struct IH_Image qoi_to_raw(const char* file) {
 
 };
 
-struct Image raw_to_qoi(const char* file) {
+struct IH_Image raw_to_qoi(const char* file) {
 
 };
 

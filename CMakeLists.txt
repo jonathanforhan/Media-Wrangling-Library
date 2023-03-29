@@ -19,4 +19,23 @@ else()
     endif()
 endif()
 
+include_directories(
+        extern/glad/include/
+        extern/glfw/include/
+)
+
+# GLFW config
+option(GLFW_INSTALL OFF)
+option(GLFW_BUILD_DOCS OFF)
+option(GLFW_BUILD_EXAMPLES OFF)
+option(GLFW_BUILD_TESTS OFF)
+add_subdirectory(extern/glfw)
+
+set(GLAD_SOURCE "${CMAKE_SOURCE_DIR}/extern/glad/src/glad.c")
+
 add_subdirectory(src)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+        glfw
+        ${GLAD_LIBRARIES}
+        )
