@@ -1,0 +1,4 @@
+#ifndef IMAGE_HANDLER_PPM_H
+#define IMAGE_HANDLER_PPM_H
+
+#endif //IMAGE_HANDLER_PPM_H
