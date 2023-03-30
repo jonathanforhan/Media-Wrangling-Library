@@ -8,9 +8,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set (CMAKE_VERBOSE_MAKEFILE 0) # 1 should be used for debugging
 set (CMAKE_SUPPRESS_REGENERATION TRUE) # Suppresses ZERO_CHECK
 if(MSVC)
-  set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} /W4")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /W4")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -std=c++17")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic -std=c99")
     set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
     if(CMAKE_BUILD_TYPE STREQUAL Release)
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin/release)
@@ -20,8 +20,9 @@ else()
 endif()
 
 include_directories(
-        extern/glad/include/
-        extern/glfw/include/
+        SYSTEM # exclude from gcc warnings
+        ${CMAKE_SOURCE_DIR}/extern/glad/include/
+        ${CMAKE_SOURCE_DIR}/extern/glfw/include/
 )
 
 # GLFW config

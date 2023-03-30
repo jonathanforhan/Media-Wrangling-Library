@@ -1,7 +1,7 @@
 add_executable(${CMAKE_PROJECT_NAME} main.c ${GLAD_SOURCE})
 
 add_library(IMAGE_LIB STATIC
-        image.c
+        image_handler.c
         ppm.c
         qoi.c
         )

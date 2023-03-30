@@ -1,84 +1,67 @@
-#include "image.h"
+#include "image_handler.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-void IH_init() {
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "ppm.h"
+#include "qoi.h"
+
+void IH_render_init(void) {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 }
 
+void IH_render_terminate(void) {
+    glfwTerminate();
+}
+
 void IH_import_image(struct IH_Image* image, const char* path, enum IH_image_type type) {
     FILE *fptr = fopen(path, "r");
-    if(fptr == NULL)
+    if(fptr == NULL) {
         perror("FILE READ ERROR");
+        image = NULL;
+        return;
+    }
 
     fseek(fptr, 0L, SEEK_END);
     uint64_t file_length = ftell(fptr);
     fseek(fptr, 0L, SEEK_SET);
 
-    bool p6 = false;
-    uint32_t width = 0, height = 0, encoding = 0;
-    char line[1024];
-    while(fgets(line, 1024, fptr)) {
-        if(width * height * encoding == 0) {
-            // if incomplete fields, truncate comments
-            const char *trunc = strchr(line, '#');
-            if(trunc != NULL) {
-                int i = (int)(trunc - &line[0]);
-                line[i] = '\0';
-            }
-        }
-
-        char *token = strtok(line, " ");
-        while(token != NULL) {
-            if(strcmp(token, "P6") != 0 && p6 == false)
-                p6 = true;
-            else if(!width)
-                width = strtol(token, NULL, 10);
-            else if(!height)
-                height = strtol(token, NULL, 10);
-            else if(!encoding)
-                encoding = strtol(token, NULL, 10);
-
-            token = width * height * encoding == 0 ? strtok(NULL, " ") : NULL;
-        }
-        if(width * height * encoding)
+    switch(type) {
+        case IH_PPM: {
+            IH_ppm_to_raw(image, fptr, file_length);
             break;
-    }
-    if(p6 == false) {
-        printf("Image Handler only accepts P6 encoded .ppm files\n");
-        image = NULL;
-        return;
+        }
+        case IH_QOI: {
+            IH_qoi_to_raw(image, fptr, file_length);
+            break;
+        }
+        default:
+            exit(EXIT_FAILURE);
     }
 
-    uint8_t *file_buffer = calloc(file_length, sizeof(uint32_t));
-    fread(file_buffer, sizeof(uint8_t), file_length, fptr);
     fclose(fptr);
-    image->width = width;
-    image->height = height;
-    image->encoding = (uint8_t)encoding;
-    image->channel = IH_RGB;
-    image->colorspace = IH_sRGB;
-    image->type = type;
-    image->data = file_buffer;
 }
 
-void loop_window(void* arg) {
+void *loop_window(void* arg) {
     struct IH_Image *image = (struct IH_Image*)arg;
     GLFWwindow *window = glfwCreateWindow((int)image->width, (int)image->height, "Image Handler", NULL, NULL);
     if(window == NULL) {
         printf("Window creation failed\n");
         glfwTerminate();
-        return;
+        exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(window);
 
     if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         printf("GLAD init failed\n");
-        return;
+        exit(EXIT_FAILURE);
     }
 
     const char *vert_str =
@@ -96,6 +79,7 @@ void loop_window(void* arg) {
             "in vec2 texCoord;\n"
             "uniform sampler2D tex;\n"
             "void main() {\n"
+            "   vec2 texCoord = vec2(texCoord.x, -texCoord.y);\n"
             "   FragColor = texture(tex, texCoord);\n"
             "}\0";
 
@@ -147,10 +131,12 @@ void loop_window(void* arg) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    GLint channels = image->channels == IH_RGB ? GL_RGB : GL_RGBA;
+
     uint32_t tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)image->width, (int)image->height, 0, GL_RGB, GL_UNSIGNED_BYTE, image->data);
+    glTexImage2D(GL_TEXTURE_2D, 0, channels, (int)image->width, (int)image->height, 0, channels, GL_UNSIGNED_BYTE, image->data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
@@ -175,7 +161,7 @@ void loop_window(void* arg) {
 
 IH_render_handle IH_render_image(struct IH_Image *image) {
     IH_render_handle thread_id;
-    pthread_create(&thread_id, NULL, (void*)loop_window, image);
+    pthread_create(&thread_id, NULL, loop_window, image);
     return thread_id;
 }
 
@@ -184,5 +170,6 @@ void IH_join_handle(IH_handle handle) {
 }
 
 void IH_delete_image(struct IH_Image* image) {
-    free(image->data);
+    if(image != NULL)
+        free(image->data);
 }
