@@ -41,9 +41,7 @@ void IH_render_terminate(void);
 
 void IH_import_image(struct IH_Image *image, const char *path, enum IH_image_type type);
 
-IH_render_handle IH_render_image(struct IH_Image *image);
-
-void IH_join_handle(IH_render_handle handle);
+void IH_render_image(struct IH_Image *image);
 
 void IH_delete_image(struct IH_Image *image);
 

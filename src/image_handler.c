@@ -22,7 +22,7 @@ void IH_render_terminate(void) {
 }
 
 void IH_import_image(struct IH_Image* image, const char* path, enum IH_image_type type) {
-    FILE *fptr = fopen(path, "r");
+    FILE *fptr = fopen(path, "rb");
     if(fptr == NULL) {
         perror("FILE READ ERROR");
         image = NULL;
@@ -51,8 +51,7 @@ void IH_import_image(struct IH_Image* image, const char* path, enum IH_image_typ
     fclose(fptr);
 }
 
-void *loop_window(void* arg) {
-    struct IH_Image *image = (struct IH_Image*)arg;
+void IH_render_image(struct IH_Image *image) {
     GLFWwindow *window = glfwCreateWindow((int)image->width, (int)image->height, "Image Handler", NULL, NULL);
     if(window == NULL) {
         printf("Window creation failed\n");
@@ -103,8 +102,8 @@ void *loop_window(void* arg) {
 
     float vertices[] = {
             // position          // texture coords
-             1.0f,  1.0f, 0.0f,  1.0f, 1.0f, // top right
-             1.0f, -1.0f, 0.0f,  1.0f, 0.0f, // bottom right
+            1.0f,  1.0f, 0.0f,  1.0f, 1.0f, // top right
+            1.0f, -1.0f, 0.0f,  1.0f, 0.0f, // bottom right
             -1.0f, -1.0f, 0.0f,  0.0f, 0.0f, // bottom left
             -1.0f,  1.0f, 0.0f,  0.0f, 1.0f, // top left
     };
@@ -159,16 +158,6 @@ void *loop_window(void* arg) {
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteProgram(program);
-}
-
-IH_render_handle IH_render_image(struct IH_Image *image) {
-    IH_render_handle thread_id;
-    pthread_create(&thread_id, NULL, loop_window, image);
-    return thread_id;
-}
-
-void IH_join_handle(IH_handle handle) {
-    pthread_join(handle, NULL);
 }
 
 void IH_delete_image(struct IH_Image* image) {

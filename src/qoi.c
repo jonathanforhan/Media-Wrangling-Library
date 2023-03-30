@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <netinet/in.h>
 
 /*
  * source:
@@ -19,6 +18,13 @@
 
 #define QOI_MASK_2    0xc0 /* 11000000 */
 static const uint8_t QOI_PADDING[8] = { 0, 0, 0, 0, 0, 0, 0, 1 };
+
+uint32_t be_to_le(uint32_t n) {
+    return  ((n >> 24) & 0xff) |      // move byte 3 to byte 0
+            ((n >> 8)  & 0xff00) |    // move byte 2 to byte 1
+            ((n << 8)  & 0xff0000) |  // move byte 1 to byte 2
+            ((n << 24) & 0xff000000); // byte 0 to byte 3
+}
 
 typedef union {
     struct {
@@ -47,8 +53,8 @@ void IH_qoi_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
     }
 
     // QOI width and height are stored as big endian
-    image->width = ntohl(*(int*)&header[4]);
-    image->height = ntohl(*(int*)&header[8]);
+    image->width = be_to_le(*(int*)&header[4]);
+    image->height = be_to_le(*(int*)&header[8]);
     image->encoding = 255;
     image->colorspace = (uint8_t)header[13];
     image->channels = (uint8_t)header[12];
