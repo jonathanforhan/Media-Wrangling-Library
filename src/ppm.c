@@ -23,11 +23,11 @@ void IH_ppm_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
             if(strcmp(token, "P6") != 0 && p6 == false)
                 p6 = true;
             else if(!width)
-                width = strtol(token, NULL, 10);
+                width = atoi(token);
             else if(!height)
-                height = strtol(token, NULL, 10);
+                height = atoi(token);
             else if(!encoding)
-                encoding = strtol(token, NULL, 10);
+                encoding = atoi(token);
 
             token = width * height * encoding == 0 ? strtok(NULL, " ") : NULL;
         }

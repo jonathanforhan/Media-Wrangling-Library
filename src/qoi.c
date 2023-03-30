@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <netinet/in.h>
 
 /*
  * source:
@@ -31,13 +32,6 @@ typedef union {
 
 #define QOI_HASH(C) ((C.rgba.r * 3 + C.rgba.g * 5 + C.rgba.b * 7 + C.rgba.a * 11) % 64)
 
-uint32_t be_to_le(uint32_t be) {
-    return ((be >> 24) & 0xff) |       // byte 3 to byte 0
-           ((be >> 8)  & 0xff00) |     // byte 2 to byte 1
-           ((be << 8)  & 0xff0000) |   // byte 1 to byte 2
-           ((be << 24) & 0xff000000);  // byte 0 to byte 3
-}
-
 void IH_qoi_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
     uint8_t *buffer = malloc(file_length); // free w/ IH_delete_image;
     fread(buffer, sizeof(uint8_t), file_length, fptr);
@@ -53,10 +47,12 @@ void IH_qoi_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
     }
 
     // QOI width and height are stored as big endian
-    image->width = be_to_le(*(int*)&header[4]);
-    image->height = be_to_le(*(int*)&header[8]);
+    image->width = ntohl(*(int*)&header[4]);
+    image->height = ntohl(*(int*)&header[8]);
+    image->encoding = 255;
     image->colorspace = (uint8_t)header[13];
     image->channels = (uint8_t)header[12];
+    image->type = IH_QOI;
 
     // header complete, parse body //
 

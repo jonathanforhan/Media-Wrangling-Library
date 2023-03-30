@@ -42,8 +42,10 @@ void IH_import_image(struct IH_Image* image, const char* path, enum IH_image_typ
             IH_qoi_to_raw(image, fptr, file_length);
             break;
         }
-        default:
+        default: {
+            perror("UNSUPPORTED FILETYPE");
             exit(EXIT_FAILURE);
+        }
     }
 
     fclose(fptr);
