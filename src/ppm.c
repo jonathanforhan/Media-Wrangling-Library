@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-void IH_ppm_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
+IH_Image *IH_ppm_to_raw(FILE *fptr, uint64_t file_length) {
     bool p6 = false;
     uint32_t width = 0, height = 0, encoding = 0;
     char line[1024];
@@ -36,12 +36,14 @@ void IH_ppm_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
     }
     if(p6 == false) {
         printf("Image Handler only accepts P6 encoded .ppm files\n");
-        image = NULL;
-        return;
+        return NULL;
     }
 
     uint8_t *data = calloc(file_length, sizeof(uint8_t)); // free w/ IH_delete_image;
     fread(data, sizeof(uint8_t), file_length, fptr);
+
+    IH_Image *image = malloc(sizeof(IH_Image));
+    if(image == NULL) return NULL;
 
     image->width = width;
     image->height = height;
@@ -50,4 +52,6 @@ void IH_ppm_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length) {
     image->colorspace = IH_sRGB;
     image->type = IH_PPM;
     image->data = data;
+
+    return image;
 }

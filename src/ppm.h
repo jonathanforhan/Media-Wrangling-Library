@@ -10,6 +10,6 @@
  * https://people.computing.clemson.edu/~dhouse/courses/405/notes/ppm-files.pdf
  */
 
-void IH_ppm_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length);
+IH_Image *IH_ppm_to_raw(FILE *fptr, uint64_t file_length);
 
 #endif //IMAGE_HANDLER_PPM_H

@@ -3,10 +3,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
+#include "png.h"
 #include "ppm.h"
 #include "qoi.h"
 
@@ -17,72 +19,80 @@ void IH_render_init(void) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 }
 
-void IH_render_terminate(void) {
-    glfwTerminate();
-}
+void IH_render_terminate(void) { glfwTerminate(); }
 
-void IH_import_image(struct IH_Image* image, const char* path, enum IH_image_type type) {
+IH_Image *IH_import_image(const char *path, enum IH_image_type type) {
     FILE *fptr = fopen(path, "rb");
-    if(fptr == NULL) {
+    if (fptr == NULL) {
         perror("FILE READ ERROR");
-        image = NULL;
-        return;
+        return NULL;
     }
+
+    IH_Image *image = NULL;
 
     fseek(fptr, 0L, SEEK_END);
     uint64_t file_length = ftell(fptr);
     fseek(fptr, 0L, SEEK_SET);
 
-    switch(type) {
-        case IH_PPM: {
-            IH_ppm_to_raw(image, fptr, file_length);
-            break;
-        }
-        case IH_QOI: {
-            IH_qoi_to_raw(image, fptr, file_length);
-            break;
-        }
-        default: {
-            perror("UNSUPPORTED FILETYPE");
-            exit(EXIT_FAILURE);
-        }
+    switch (type) {
+    case IH_PPM: {
+        image = IH_ppm_to_raw(fptr, file_length);
+        break;
+    }
+    case IH_QOI: {
+        image = IH_qoi_to_raw(fptr, file_length);
+        break;
+    }
+    case IH_PNG: {
+        image = IH_png_to_raw(fptr, file_length);
+        break;
+    }
+    default: {
+        free(image);
+        perror("UNSUPPORTED FILETYPE");
+        return NULL;
+    }
     }
 
     fclose(fptr);
+
+    return image;
 }
 
-void IH_render_image(struct IH_Image *image) {
-    GLFWwindow *window = glfwCreateWindow((int)image->width, (int)image->height, "Image Handler", NULL, NULL);
-    if(window == NULL) {
+void IH_render_image(IH_Image *image) {
+    int win_h = (int)image->height;
+    int win_w = (int)image->width;
+    GLFWwindow *window = glfwCreateWindow(win_w, win_h, "Image Handler", NULL, NULL);
+    if (window == NULL) {
         printf("Window creation failed\n");
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
     glfwMakeContextCurrent(window);
 
-    if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         printf("GLAD init failed\n");
         exit(EXIT_FAILURE);
     }
 
     const char *vert_str =
-            "#version 330 core\n"
-            "layout (location = 0) in vec3 aPos;\n"
-            "layout (location = 1) in vec2 aTexCoord;\n"
-            "out vec2 texCoord;\n"
-            "void main() {\n"
-            "   gl_Position = vec4(aPos, 1.0);\n"
-            "   texCoord = aTexCoord;\n"
-            "}\0";
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;\n"
+        "layout (location = 1) in vec2 aTexCoord;\n"
+        "out vec2 texCoord;\n"
+        "void main() {\n"
+        "     gl_Position = vec4(aPos, 1.0);\n"
+        "     texCoord = aTexCoord;\n"
+        "}\0";
     const char *frag_str =
-            "#version 330 core\n"
-            "out vec4 FragColor;\n"
-            "in vec2 texCoord;\n"
-            "uniform sampler2D tex;\n"
-            "void main() {\n"
-            "   vec2 texCoord = vec2(texCoord.x, -texCoord.y);\n"
-            "   FragColor = texture(tex, texCoord);\n"
-            "}\0";
+        "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "in vec2 texCoord;\n"
+        "uniform sampler2D tex;\n"
+        "void main() {\n"
+        "     vec2 texCoord = vec2(texCoord.x, -texCoord.y);\n"
+        "     FragColor = texture(tex, texCoord);\n"
+        "}\0";
 
     uint32_t vert_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vert_shader, 1, &vert_str, NULL);
@@ -101,15 +111,15 @@ void IH_render_image(struct IH_Image *image) {
     glDeleteShader(frag_shader);
 
     float vertices[] = {
-            // position          // texture coords
-            1.0f,  1.0f, 0.0f,  1.0f, 1.0f, // top right
-            1.0f, -1.0f, 0.0f,  1.0f, 0.0f, // bottom right
-            -1.0f, -1.0f, 0.0f,  0.0f, 0.0f, // bottom left
-            -1.0f,  1.0f, 0.0f,  0.0f, 1.0f, // top left
+        // position        // texture coords
+        1.0f,  1.0f, 0.0f, 1.0f, 1.0f, // top right
+        1.0f, -1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+       -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, // bottom left
+       -1.0f,  1.0f, 0.0f, 0.0f, 1.0f, // top left
     };
     uint32_t indices[] = {
-            0, 1, 3,  // first Triangle
-            1, 2, 3   // second Triangle
+        0, 1, 3, // first Triangle
+        1, 2, 3  // second Triangle
     };
     uint32_t VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
@@ -126,7 +136,7 @@ void IH_render_image(struct IH_Image *image) {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), NULL);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -137,7 +147,7 @@ void IH_render_image(struct IH_Image *image) {
     uint32_t tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, channels, (int)image->width, (int)image->height, 0, channels, GL_UNSIGNED_BYTE, image->data);
+    glTexImage2D(GL_TEXTURE_2D, 0, channels, win_w, win_h, 0, channels, GL_UNSIGNED_BYTE, image->data);
     glGenerateMipmap(GL_TEXTURE_2D);
     glUniform1i(glGetUniformLocation(program, "tex"), 0);
 
@@ -145,7 +155,7 @@ void IH_render_image(struct IH_Image *image) {
     glBindTexture(GL_TEXTURE_2D, tex);
     glUseProgram(program);
     glBindVertexArray(VAO);
-    while(!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -160,7 +170,8 @@ void IH_render_image(struct IH_Image *image) {
     glDeleteProgram(program);
 }
 
-void IH_delete_image(struct IH_Image* image) {
-    if(image != NULL)
+void IH_delete_image(IH_Image *image) {
+    if (image != NULL)
         free(image->data);
+    free(image);
 }

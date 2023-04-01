@@ -10,6 +10,6 @@
  * https://qoiformat.org/qoi-specification.pdf
  */
 
-void IH_qoi_to_raw(struct IH_Image *image, FILE *fptr, uint64_t file_length);
+IH_Image *IH_qoi_to_raw(FILE *fptr, uint64_t file_length);
 
 #endif //IMAGE_HANDLER_QOI_H
