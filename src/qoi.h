@@ -10,6 +10,6 @@
 
 MWL_Image *MWL_qoi_to_raw(uint8_t *qoi_buf, uint32_t file_len);
 
-void MWL_export_raw_to_qoi(MWL_Image *image, const char *path);
+int MWL_export_raw_to_qoi(const MWL_Image *image, const char *path);
 
 #endif // MWL_SRC_QOI_H

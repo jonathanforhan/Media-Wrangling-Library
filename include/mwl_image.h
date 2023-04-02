@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define MWL_SUCCESS  0
+#define MWL_FAILURE -1
+
 enum MWL_image_type {
     MWL_QOI,
     MWL_PNG,
@@ -23,6 +26,7 @@ typedef struct MWL_Image {
     enum MWL_channels channels;
 
     uint8_t *data;
+    uint32_t data_len;
 } MWL_Image;
 
 // Import qoi, png, or jpg image
@@ -33,6 +37,6 @@ MWL_Image *MWL_import_image(const char *path);
 void MWL_free_image(MWL_Image *image);
 
 // Export image as specified type
-void MWL_export_image(MWL_Image *image, enum MWL_image_type type, const char *path);
+int MWL_export_image(const MWL_Image *image, enum MWL_image_type type, const char *path);
 
 #endif // MWL_INCLUDE_MWL_IMAGE_H

@@ -11,13 +11,16 @@ def main(opt):
             os.makedirs('./bin/release')
 
         os.system("cd build; cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..; ninja")
+
     elif opt == 'build-debug':
         if not os.path.exists('./bin/debug/'):
             os.makedirs('./bin/debug')
 
         os.system("cd build; cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ..; ninja")
+
     elif opt == 'clean':
         os.system("cd build; rm -rdf *")
+
     else:
         print("invalid command")
 

@@ -3,9 +3,17 @@
 
 #include <mwl_image.h>
 
-int main(int argc, char *argv[]) {
-    // MWL_import_image("../../samples/png/testcard.png");
-    MWL_Image *image = MWL_import_image("../../samples/qoi/testcard.qoi");
+int main(void) {
+    MWL_Image *image = MWL_import_image("../../samples/qoi/testcard_rgba.qoi");
+
+    int res = MWL_export_image(image, MWL_QOI, "test.qoi");
+    MWL_free_image(image);
+    if (res != MWL_SUCCESS) {
+        printf("\nERROR\n\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    image = MWL_import_image("test.qoi");
 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -26,6 +34,10 @@ int main(int argc, char *argv[]) {
         printf("GLAD init failed\n");
         exit(EXIT_FAILURE);
     }
+
+    // Enables alpha channel blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     const char *vert_str =
         "#version 330 core\n"
@@ -108,6 +120,7 @@ int main(int argc, char *argv[]) {
     glUseProgram(program);
     glBindVertexArray(VAO);
     while (!glfwWindowShouldClose(window)) {
+        glClearColor(0.25f, 0.25f, 0.25f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -122,6 +135,8 @@ int main(int argc, char *argv[]) {
     glDeleteProgram(program);
 
     glfwTerminate();
+
+    MWL_free_image(image);
 
     return 0;
 }

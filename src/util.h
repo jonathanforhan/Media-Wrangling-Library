@@ -7,24 +7,18 @@
 /* Util uses abort macro for graceful exit from function
  * MWL_ASSERT is does not throw, simply exits and logs error
  */
-#if !defined NDEBUG && defined MWL_ABORT
+#if defined MWL_LOG_ERROR && defined MWL_ABORT
 #define MWL_ASSERT(X)\
-    if (!(X)) {\
-        const char *red = "\033[31m";\
-        const char *none = "\033[0m";\
-        fprintf(stderr, "\n%sMWL_ERROR: %s - line %d: %s%s\n\n",\
-                red, __FILE__, __LINE__, strerror(errno), none);\
-        MWL_handle_error();\
+if (!(X)) {\
+        fprintf(stderr, "\n\033[31mMWL_ERROR: %s - line %d: %s\033[0m\n\n",\
+                __FILE__, __LINE__, strerror(errno));\
         goto MWL_ABORT;\
     }
-#elif !defined NDEBUG
+#elif defined MWL_LOG_ERROR
 #define MWL_ASSERT(X)\
     if (!(X)) {\
-        const char *red = "\033[31m";\
-        const char *none = "\033[0m";\
-        fprintf(stderr, "\n%sMWL_ERROR: %s - line %d: %s%s\n\n",\
-                red, __FILE__, __LINE__, strerror(errno), none);\
-        MWL_handle_error();\
+        fprintf(stderr, "\n\033[31mMWL_ERROR: %s - line %d: %s\033[0m\n\n",\
+                __FILE__, __LINE__, strerror(errno));\
     }
 #elif defined MWL_ABORT
 #define MWL_ASSERT(X)\
@@ -32,11 +26,31 @@
         goto MWL_ABORT;\
     }
 #else
-#define MWL_ASSERT(X) X
+#define MWL_ASSERT(X) if (!(X)) {}
 #endif
+
+// Log the function aborted from
+#ifndef __FUNCTION_NAME__
+    #ifdef WIN32   //WINDOWS
+        #define __FUNCTION_NAME__   __FUNCTION__  
+    #else          //*NIX
+        #define __FUNCTION_NAME__   __func__ 
+    #endif
+#endif
+#ifdef MWL_LOG_EARLY_EXIT
+#define MWL_LOG_ABORT() fprintf(stderr, "\033[31mMWL_ABORT: function - %s early exit\033[0m\n", __FUNCTION_NAME__)
+#else
+#define MWL_LOG_ABORT()
+#endif
+
+// Increase readability of many comparasons
+#define MWL_WITHIN(X, A, B) (X > A && X < B)
 
 // Big Endian to Little Endian conversion
 unsigned long MWL_ntohl(unsigned long n);
+
+// Little Endian to Big Endian conversion
+unsigned long MWL_htonl(unsigned long n);
 
 // Show stack-trace if debug build
 void MWL_handle_error(void);

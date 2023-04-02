@@ -19,6 +19,8 @@ else()
     endif()
 endif()
 
+add_compile_definitions(MWL_LOG_ERROR)
+add_compile_definitions(MWL_LOG_EARLY_EXIT )
 add_subdirectory(src)
 
 # Test app

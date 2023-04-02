@@ -108,10 +108,124 @@ data_transfer:
     } // end for loop
 
     image->data = raw_buf;
+    image->data_len = raw_buf_len;
     return image;
 
 abort:
+    MWL_LOG_ABORT();
     free(raw_buf);
     free(image);
     return NULL;
+}
+
+// MWL_Image exported as qoi
+int MWL_export_raw_to_qoi(const MWL_Image *image, const char *path) {
+    FILE *fptr = NULL;
+    uint8_t *qoi_buf = NULL;
+
+    // maximum possible size of qoi image
+    uint32_t qoi_buf_len = image->width * image->height * image->channels
+        + MWL_QOI_HEADER_SIZE + sizeof(MWL_QOI_PADDING);
+    MWL_ASSERT(qoi_buf = malloc(qoi_buf_len));
+
+    *(uint32_t*)qoi_buf = MWL_QOI_MAGIC;
+    *(uint32_t*)&qoi_buf[4] = MWL_htonl(image->width);
+    *(uint32_t*)&qoi_buf[8] = MWL_htonl(image->height);
+	qoi_buf[12] = image->channels;
+	qoi_buf[13] = 0;
+
+    size_t p = MWL_QOI_HEADER_SIZE, run = 0;
+
+    mwl_qoi_pixel index[64] = { 0 };
+    mwl_qoi_pixel px = {{ 0, 0, 0, 255 }};
+    mwl_qoi_pixel px_prev;
+
+	uint32_t raw_buf_len = image->width * image->height * image->channels;
+	uint32_t px_end = raw_buf_len - image->channels;
+
+    const uint8_t *raw_buf = image->data;
+
+	for (size_t i = 0; i < raw_buf_len; i += image->channels) {
+		px_prev = px;
+		px.rgba.r = raw_buf[i + 0];
+		px.rgba.g = raw_buf[i + 1];
+		px.rgba.b = raw_buf[i + 2];
+
+		if (image->channels == 4) {
+			px.rgba.a = raw_buf[i + 3];
+		}
+
+		if (px.v == px_prev.v) {
+			++run;
+			if (run == 62 || i == px_end) {
+				qoi_buf[p++] = MWL_QOI_OP_RUN | (run - 1);
+				run = 0;
+			}
+		    continue;
+		}
+
+		if (run > 0) {
+			qoi_buf[p++] = MWL_QOI_OP_RUN | (run - 1);
+			run = 0;
+		}
+
+		size_t index_pos = MWL_QOI_HASH(px);
+
+		if (index[index_pos].v == px.v) {
+			qoi_buf[p++] = MWL_QOI_OP_INDEX | index_pos;
+		    continue;
+		}
+		index[index_pos] = px;
+
+		if (px.rgba.a == px_prev.rgba.a) {
+			int8_t vr = px.rgba.r - px_prev.rgba.r;
+			int8_t vg = px.rgba.g - px_prev.rgba.g;
+			int8_t vb = px.rgba.b - px_prev.rgba.b;
+
+			int8_t vg_r = vr - vg;
+			int8_t vg_b = vb - vg;
+
+            // MWL_WITHIN: (X, A, B) -> (X > A && X < B)
+			if (MWL_WITHIN(vr, -3, 2) && MWL_WITHIN(vg, -3, 2) && MWL_WITHIN(vb, -3, 2)) {
+				qoi_buf[p++] = MWL_QOI_OP_DIFF | (vr + 2) << 4 | (vg + 2) << 2 | (vb + 2);
+			}
+			else if (MWL_WITHIN(vg_r, -9, 8) && MWL_WITHIN(vg, -33, 32) && MWL_WITHIN(vg_b, -9, 8)) {
+				qoi_buf[p++] = MWL_QOI_OP_LUMA | (vg   + 32);
+				qoi_buf[p++] = (vg_r + 8) << 4 | (vg_b +  8);
+			}
+			else {
+				qoi_buf[p++] = MWL_QOI_OP_RGB;
+				qoi_buf[p++] = px.rgba.r;
+				qoi_buf[p++] = px.rgba.g;
+				qoi_buf[p++] = px.rgba.b;
+			}
+		}
+		else {
+			qoi_buf[p++] = MWL_QOI_OP_RGBA;
+			qoi_buf[p++] = px.rgba.r;
+			qoi_buf[p++] = px.rgba.g;
+			qoi_buf[p++] = px.rgba.b;
+			qoi_buf[p++] = px.rgba.a;
+		}
+	}
+
+	*(uint64_t*)&qoi_buf[p] = MWL_QOI_PADDING;
+	p += sizeof(MWL_QOI_PADDING); // EOF
+
+    fptr = fopen(path, "wb");
+    MWL_ASSERT(fptr != NULL);
+
+    MWL_ASSERT(fwrite(qoi_buf, sizeof(uint8_t), p, fptr));
+    fclose(fptr);
+    free(qoi_buf);
+
+    return MWL_SUCCESS;
+
+abort:
+    MWL_LOG_ABORT();
+    if (fptr != NULL) {
+        fclose(fptr);
+    }
+    free(qoi_buf);
+    return MWL_FAILURE;
 }

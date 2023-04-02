@@ -16,7 +16,8 @@ MWL_Image *MWL_import_image(const char *path) {
     MWL_ASSERT(fptr != NULL);
     
     fseek(fptr, 0, SEEK_END);
-    uint64_t file_len = ftell(fptr);
+    uint64_t file_len = (uint64_t)ftell(fptr);
+    MWL_ASSERT(file_len != 0 && file_len != (uint64_t)-1);
     rewind(fptr);
 
     MWL_ASSERT(buffer = malloc(file_len));
@@ -36,20 +37,38 @@ MWL_Image *MWL_import_image(const char *path) {
     return image;
 
 abort:
+    MWL_LOG_ABORT();
     if (fptr != NULL)
         fclose(fptr);
     free(buffer);
     return NULL;
 }
 
-void MWL_delete_image(MWL_Image *image) {
+void MWL_free_image(MWL_Image *image) {
     if (image != NULL) {
         free(image->data);
     }
     free(image);
 }
 
-// void MWL_export_image(MWL_Image *image, enum MWL_image_type type, const char *path) {
-//     
-// }
+int MWL_export_image(const MWL_Image *image, enum MWL_image_type type, const char *path) {
+    MWL_ASSERT(image != NULL);
+    MWL_ASSERT(image->data != NULL);
+
+    switch (type) {
+    case MWL_QOI:
+        return MWL_export_raw_to_qoi(image, path);
+    case MWL_PNG:
+        //return MWL_export_raw_to_png(image, path);
+        return MWL_FAILURE;
+    case MWL_JPG:
+        //return MWL_export_raw_to_jpg(image, path);
+        return MWL_FAILURE;
+    }
+    fprintf(stderr, "\033[31mFile-type error\n\033[0m");
+
+abort:
+    MWL_LOG_ABORT();
+    return MWL_FAILURE;
+}
 
