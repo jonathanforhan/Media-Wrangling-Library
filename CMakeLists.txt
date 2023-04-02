@@ -21,6 +21,13 @@ endif()
 
 add_subdirectory(src)
 
+set(MWL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/")
+
 # Test app
-add_executable(${CMAKE_PROJECT_NAME} ${CMAKE_SOURCE_DIR}/test/test.c)
-target_link_libraries(${CMAKE_PROJECT_NAME} PUBLIC IMAGE_LIB)
+add_executable(test ${CMAKE_SOURCE_DIR}/test/test.c)
+target_link_libraries(test PUBLIC MWL_IMAGE)
+target_include_directories(test PUBLIC
+    ${CMAKE_SOURCE_DIR}/extern/glad/include/
+    ${CMAKE_SOURCE_DIR}/extern/glfw/include/
+    ${CMAKE_SOURCE_DIR}/include/
+    )

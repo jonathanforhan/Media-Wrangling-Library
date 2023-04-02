@@ -4,6 +4,7 @@ include_directories(
         SYSTEM # exclude from gcc warnings
         ${CMAKE_SOURCE_DIR}/extern/glad/include/
         ${CMAKE_SOURCE_DIR}/extern/glfw/include/
+        ${CMAKE_SOURCE_DIR}/include/
 )
 
 # GLFW config
@@ -15,10 +16,8 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/extern/glfw glfw)
 
 add_library(MWL_IMAGE STATIC
     ${GLAD_SOURCE}
-    image_handler.c
-    ppm.c
+    mwl_image.c
     qoi.c
-    png.c
     util.c
     )
 
@@ -29,6 +28,5 @@ target_link_libraries(MWL_IMAGE PUBLIC
 
 target_include_directories(MWL_IMAGE PUBLIC
     ${CMAKE_SOURCE_DIR}/src/
-    ${CMAKE_SOURCE_DIR}/include/
     )
 

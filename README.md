@@ -3,7 +3,6 @@
 ### Roadmap:
 
 #### Image:
-- [x] PPM
 - [x] QOI
 - [ ] PNG
 - [ ] JPG
