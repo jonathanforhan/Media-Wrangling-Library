@@ -1,7 +1,7 @@
-#include "../include/mwl_image.h"
-
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include <mwl_image.h>
 
 int main(int argc, char *argv[]) {
     // MWL_import_image("../../samples/png/testcard.png");

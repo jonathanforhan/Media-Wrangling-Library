@@ -21,13 +21,25 @@ endif()
 
 add_subdirectory(src)
 
-set(MWL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include/")
-
 # Test app
-add_executable(test ${CMAKE_SOURCE_DIR}/test/test.c)
-target_link_libraries(test PUBLIC MWL_IMAGE)
+set(GLAD_SOURCE "${CMAKE_SOURCE_DIR}/extern/glad/src/glad.c")
+
+option(GLFW_INSTALL OFF)
+option(GLFW_BUILD_DOCS OFF)
+option(GLFW_BUILD_EXAMPLES OFF)
+option(GLFW_BUILD_TESTS OFF)
+add_subdirectory(${CMAKE_SOURCE_DIR}/extern/glfw)
+
+add_executable(test ${CMAKE_SOURCE_DIR}/test/test.c ${GLAD_SOURCE})
+
+target_link_libraries(test PUBLIC
+    ${GLAD_LIBRARIES}
+    glfw
+    MWL_IMAGE
+    )
+
 target_include_directories(test PUBLIC
     ${CMAKE_SOURCE_DIR}/extern/glad/include/
-    ${CMAKE_SOURCE_DIR}/extern/glfw/include/
-    ${CMAKE_SOURCE_DIR}/include/
+    ${GLFW_INCLUDE_DIRS}
+    ${MWL_IMAGE_INCLUDE_DIRS}
     )
